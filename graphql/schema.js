@@ -8,7 +8,6 @@ const {
   GraphQLList, // list 数组类型
 } = graphql;
 
-
 // 定义一些假数据
 const bookData = [
   {id:1, name:'《大话西游》', genre:"喜剧/搞笑", authorId: 1},
@@ -24,7 +23,6 @@ const authorData = [
   {id:2, name:'天蚕土豆', age:38},
   {id:3, name:'唐家三少', age:39}
 ];
-
 
 // 定义 BookType 返回书籍信息的对象数据结构
 const BookType = new GraphQLObjectType({
