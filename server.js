@@ -15,7 +15,7 @@ const schema = require('./graphql/schema');
 const app = express();
 
 // 连接 mongoose
-mongoose.connect('mongodb://127.0.0.1:27017/', { useNewUrlParser: true, useUnifiedTopology: true } );
+mongoose.connect('mongodb://127.0.0.1:27017/damiao-test', { useNewUrlParser: true, useUnifiedTopology: true } );
 mongoose.connection.once('open',() => {
   console.log('connceted to database.')
 });
