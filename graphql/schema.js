@@ -6,7 +6,11 @@ const {
   GraphQLSchema, // schema (定义接口时使用)
   GraphQLInt, // int 类型
   GraphQLList, // list 数组类型
+  GraphQLNonNull // non null 不能为空
 } = graphql;
+const Book  = require('../models/book.js');
+const Author  = require('../models/author.js');
+
 
 // 定义一些假数据
 const bookData = [
@@ -32,11 +36,14 @@ const BookType = new GraphQLObjectType({
     id: { type: GraphQLID, description: 'This\'s is a book id.'},
     name: { type: GraphQLString },
     genre: { type: GraphQLString },
+    authorId: { type: GraphQLString },
     author: { // 嵌套类型
       type: AuthorType,
+      description: '当前书籍ID下的作者信息',
       resolve: (root, params) => {
         console.log(root)
-        return authorData.filter(v => v.id == root.authorId)[0]
+        // return authorData.filter(v => v.id == root.authorId)[0]
+        return Author.findById(root.authorId)
       }
     }
   })
@@ -55,7 +62,7 @@ const AuthorType = new GraphQLObjectType({
       description: '当前作者ID下的所有书籍列表',
       resolve: (root, params) => {
         console.log(root)
-        return bookData.filter(v => v.authorId == root.id)
+        return Book.find({authorId: root.id})
       }
     }
   })
@@ -63,7 +70,7 @@ const AuthorType = new GraphQLObjectType({
 
 // 定义查询 RootQuery
 const RootQuery = new GraphQLObjectType({
-  name: 'RootQueryType',
+  name: 'RootQuery',
   fields: () => ({
     // 查询类型接口方法名称
     book:{
@@ -76,7 +83,9 @@ const RootQuery = new GraphQLObjectType({
       resolve: (root, params, context) => {
         // 获取参数 从数据库获取相关信息，返回给客户端
         const { id } = params;
-        return bookData.filter( v => v.id == id )[0];
+        // return Book.findById(id)
+        return Book.findById(id)
+        // return bookData.filter( v => v.id == id )[0];
       }
     },
     author:{
@@ -88,21 +97,75 @@ const RootQuery = new GraphQLObjectType({
       resolve: (root, params, context) => {
         // 获取参数 从数据库获取相关信息，返回给客户端
         const { id } = params;
-        return authorData.filter( v => v.id == id )[0];
+        return Author.findById(id)
       }
     },
     books:{
       type: new GraphQLList(BookType),
       description: '查询书籍列表',
       resolve: (root, params) => {
-        return bookData
+        return Book.find()
       }
     },
     authors:{
       type: new GraphQLList(AuthorType),
       description: '查询作者列表',
       resolve: (root, params) => {
-        return authorData
+        return Author.find()
+      }
+    }
+  })
+})
+
+// 定义修改更新 RootMutation
+const RootMutation = new GraphQLObjectType({
+  name: 'RootMutation',
+  description: '更新新增数据',
+  fields: () => ({
+    addAuthor:{
+        type: AuthorType,
+        description: '新增作者信息',
+        // 参数
+        args: {
+          name: { type: new GraphQLNonNull(GraphQLString) , description: '新增作者的名称' },
+          age: { type: GraphQLInt, description: '新增作者的年龄' }
+        },
+        resolve: async (root, params) => {
+          let result = null
+          await Author.find({ name: params.name, age: params.age }, (err, doc) => {
+                if(doc.length == 0){
+                  let author = new Author({
+                    name: params.name,
+                    age: params.age
+                  })
+                  result = author.save()
+                }
+          });
+          return result;
+        }
+    },
+    addBook: {
+      type: BookType,
+      description: '新增书籍信息',
+      // 参数
+      args: {
+        name: { type: new GraphQLNonNull(GraphQLString) , description: '新增书籍名称' },
+        genre: { type: GraphQLString, description: '新增书籍类型' },
+        authorId: { type: GraphQLID, description: '新增书籍的作者ID' }
+      },
+      resolve: async (root, params) => {
+        let result = null
+        await Book.find({ name: params.name, genre: params.genre, authorId: params.authorId }, (err, doc) => {
+              if(doc.length == 0){
+                let book = new Book({
+                  name: params.name,
+                  genre: params.genre,
+                  authorId: params.authorId
+                })
+                result = book.save()
+              }
+        });
+        return result;
       }
     }
   })
@@ -110,5 +173,6 @@ const RootQuery = new GraphQLObjectType({
 
 // 定义导出 schema
 module.exports = new GraphQLSchema({
-  query: RootQuery // query 定义查询类的接口
+  query: RootQuery, // query 定义查询类的接口
+  mutation: RootMutation
 });
